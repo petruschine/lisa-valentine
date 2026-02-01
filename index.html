@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lisa ❤️</title>
+  <style>
+    body{
+      margin:0;
+      height:100vh;
+      display:grid;
+      place-items:center;
+      background:linear-gradient(135deg,#ffe0ef,#fff6d6);
+      font-family:system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      overflow:hidden;
+    }
+    .card{
+      width:min(520px,92vw);
+      background:rgba(255,255,255,.78);
+      border-radius:18px;
+      padding:26px 20px;
+      text-align:center;
+      box-shadow:0 12px 40px rgba(0,0,0,.12);
+    }
+    h1{margin:0 0 8px;font-size:28px;}
+    p{margin:0 0 14px;opacity:.85;}
+
+    .hint{
+      font-size:13px;
+      opacity:.7;
+      margin-top:10px;
+    }
+
+    .actions{
+      position:relative;
+      height:140px;
+      margin-top:10px;
+    }
+
+    #yesBtn{
+      font-weight:900;
+      font-size:22px;
+      padding:14px 30px;
+      border:none;
+      border-radius:999px;
+      background:#ff2d78;
+      color:#fff;
+      cursor:pointer;
+      box-shadow:0 10px 22px rgba(255,45,120,.35);
+      transition:transform .12s ease, filter .12s ease;
+    }
+    #yesBtn:active{transform:scale(.97);filter:brightness(.95);}
+
+    /* NO: chaotic + not clickable */
+    #noBtn{
+      position:absolute;
+      padding:12px 22px;
+      border-radius:999px;
+      background:rgba(0,0,0,.10);
+      color:rgba(0,0,0,.62);
+      pointer-events:none;
+      user-select:none;
+      font-weight:800;
+      letter-spacing:.2px;
+      transform:translate(-50%,-50%);
+      left:50%;
+      top:78%;
+      will-change: left, top, transform;
+    }
+
+    /* extra chaos animation */
+    .panic{
+      animation: jitter .12s infinite linear;
+    }
+    @keyframes jitter{
+      0%{transform:translate(-50%,-50%) rotate(-3deg) scale(1.02)}
+      50%{transform:translate(-50%,-50%) rotate(3deg) scale(.98)}
+      100%{transform:translate(-50%,-50%) rotate(-2deg) scale(1.01)}
+    }
+
+    #kiss{
+      display:none;
+      margin-top:18px;
+      font-size:22px;
+      font-weight:800;
+    }
+    .emoji{
+      font-size:56px;
+      display:block;
+      margin-top:8px;
+      animation:pop .6s ease both;
+    }
+    @keyframes pop{
+      0%{transform:scale(.3);opacity:0}
+      60%{transform:scale(1.15);opacity:1}
+      100%{transform:scale(1);opacity:1}
+    }
+
+    .heart{
+      position:fixed;
+      bottom:-20px;
+      font-size:22px;
+      animation:floatUp 2.6s ease-in forwards;
+      pointer-events:none;
+      opacity:.95;
+    }
+    @keyframes floatUp{
+      to{transform:translateY(-110vh) translateX(var(--dx));opacity:0}
+    }
+  </style>
+</head>
+
+<body>
+  <div class="card">
+    <h1>Lisa, will you be my Valentine? 💘</h1>
+    <p>From Petrus ❤️</p>
+
+    <div class="actions" id="arena">
+      <button id="yesBtn">YES 💖</button>
+      <div id="noBtn">NO ❌</div>
+    </div>
+
+    <div class="hint">Tap anywhere once to start the music 🎶</div>
+
+    <div id="kiss">
+      You just made me really happy ❤️
+      <span class="emoji">😘</span>
+    </div>
+  </div>
+
+  <!-- Background music (royalty-free): replace the src with any mp3 you like -->
+  <audio id="bgm" loop preload="auto">
+    <!-- Tip: host an mp3 on GitHub/Drive/etc and paste direct mp3 link here -->
+    <source src="https://cdn.pixabay.com/download/audio/2022/10/26/audio_62fbe03b1f.mp3?filename=romantic-piano-112194.mp3" type="audio/mpeg">
+  </audio>
+
+<script>
+  const yesBtn = document.getElementById("yesBtn");
+  const noBtn  = document.getElementById("noBtn");
+  const kiss   = document.getElementById("kiss");
+  const arena  = document.getElementById("arena");
+  const bgm    = document.getElementById("bgm");
+
+  let lastMove = 0;
+
+  // Start music only after user interaction (mobile policy)
+  async function startMusic(){
+    try{
+      if (bgm.paused) {
+        bgm.volume = 0.35;
+        await bgm.play();
+      }
+    }catch(e){}
+  }
+  document.addEventListener("click", startMusic, { once:false });
+  document.addEventListener("touchstart", startMusic, { passive:true });
+
+  function clamp(n, min, max){ return Math.max(min, Math.min(max, n)); }
+
+  function moveNo(extraChaos=false){
+    const pad = 8;
+    const r = arena.getBoundingClientRect();
+
+    const maxX = r.width  - noBtn.offsetWidth  - pad;
+    const maxY = r.height - noBtn.offsetHeight - pad;
+
+    // jump around more wildly when panicking
+    const x = Math.random() * maxX + pad;
+    const y = Math.random() * maxY + pad;
+
+    // apply
+    noBtn.style.left = x + "px";
+    noBtn.style.top  = y + "px";
+    noBtn.style.transform = "translate(0,0)";
+
+    // add panic animation sometimes
+    if (extraChaos) {
+      noBtn.classList.add("panic");
+      setTimeout(() => noBtn.classList.remove("panic"), 650);
+    }
+  }
+
+  function distanceToNo(clientX, clientY){
+    const b = noBtn.getBoundingClientRect();
+    const cx = b.left + b.width/2;
+    const cy = b.top  + b.height/2;
+    return Math.hypot(clientX - cx, clientY - cy);
+  }
+
+  // Desktop: chaos when cursor gets close
+  document.addEventListener("mousemove", (e) => {
+    const now = performance.now();
+    const d = distanceToNo(e.clientX, e.clientY);
+
+    // the closer you get, the faster it teleports
+    const threshold = 180;
+    if (d < threshold && now - lastMove > 30) {
+      lastMove = now;
+      moveNo(true);
+      // extra teleport when SUPER close
+      if (d < 90) setTimeout(() => moveNo(true), 40);
+    }
+  });
+
+  // Mobile: teleport on touch + random extra jumps
+  document.addEventListener("touchstart", () => {
+    moveNo(true);
+    setTimeout(() => moveNo(true), 60);
+  }, { passive:true });
+
+  // Random chaos every few seconds (keeps it moving even if she does nothing)
+  setInterval(() => {
+    if (!yesBtn.disabled) moveNo(false);
+  }, 1800);
+
+  // YES click: show kiss + hearts + raise music a bit
+  yesBtn.addEventListener("click", async () => {
+    await startMusic();
+    bgm.volume = 0.5;
+
+    kiss.style.display = "block";
+    yesBtn.disabled = true;
+    yesBtn.style.filter = "grayscale(.12)";
+    burstHearts();
+  });
+
+  function burstHearts(){
+    const hearts = ["❤️","💘","💖","💕","💗"];
+    for(let i=0;i<22;i++){
+      const s = document.createElement("div");
+      s.className = "heart";
+      s.textContent = hearts[Math.floor(Math.random()*hearts.length)];
+      s.style.left = Math.random()*100 + "vw";
+      s.style.setProperty("--dx", (Math.random()*140 - 70) + "px");
+      s.style.animationDelay = (Math.random()*0.25) + "s";
+      document.body.appendChild(s);
+      s.addEventListener("animationend", () => s.remove());
+    }
+  }
+
+  // initial position
+  moveNo(true);
+</script>
+</body>
+</html>
